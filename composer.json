@@ -1,0 +1,9 @@
+{
+  "name": "jw/jw-cms",
+  "description": "Development checks for JW Core; WordPress/plugins are installed separately.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require-dev": { "wp-coding-standards/wpcs": "^3.3", "phpcsstandards/phpcsextra": "^1.2", "dealerdirect/phpcodesniffer-composer-installer": "^1.1" },
+  "config": { "allow-plugins": { "dealerdirect/phpcodesniffer-composer-installer": true } },
+  "scripts": { "check": "phpcs", "lint": "php -l wp-content/plugins/jw-core/jw-core.php" }
+}

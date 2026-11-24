@@ -1,0 +1,9 @@
+{
+  "wordpress": "7.1.5",
+  "php": ">=8.2",
+  "plugins": {
+    "wp-graphql": "2.29.0",
+    "wp-mail-smtp": "4.10.4",
+    "safe-svg": "2.5.2"
+  }
+}

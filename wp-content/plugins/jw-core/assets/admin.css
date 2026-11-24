@@ -1,0 +1,11 @@
+.jw-field { margin: 0 0 22px; }
+.jw-field > label { display: block; font-weight: 600; margin-bottom: 8px; }
+.jw-field input[type=text], .jw-field input[type=email], .jw-field textarea, .jw-field select { width: 100%; max-width: 100%; }
+.jw-field .jw-sublabel { font-weight: 400; margin: 10px 0; }
+.jw-media img { max-width: 280px; max-height: 160px; background: #eef0f4; object-fit: contain; }
+.jw-row { border: 1px solid #ccd0d4; padding: 16px; margin: 0 0 18px; background: #fafbfc; }
+.jw-row legend { font-weight: 600; padding: 0 6px; }
+.jw-row-actions { display: flex; gap: 8px; }
+.jw-settings { max-width: 1080px; }
+.jw-settings-group { background: white; border: 1px solid #ccd0d4; padding: 24px; margin-top: 20px; }
+.jw-home-editor #postdivrich { display: none; }

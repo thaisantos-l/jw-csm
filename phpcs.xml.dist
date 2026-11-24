@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ruleset name="JW Core">
+  <description>WordPress coding and security checks for owned PHP code.</description>
+  <file>wp-content/plugins/jw-core</file>
+  <file>wp-content/themes/jw-headless</file>
+  <arg name="extensions" value="php"/>
+  <arg name="colors"/>
+  <rule ref="WordPress-Core"/>
+  <rule ref="WordPress-Extra"/>
+  <config name="minimum_supported_wp_version" value="6.5"/>
+</ruleset>
