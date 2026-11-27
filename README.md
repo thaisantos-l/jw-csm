@@ -40,4 +40,14 @@ Em um checkout novo, use PHP 8.2+ e WP-CLI e execute `scripts/install-dependenci
 
 Qualidade: `composer install` e `composer check`; PHP lint nos arquivos próprios. Testes locais, fixtures e evidências ficam fora do Git. O produto não depende deles.
 
-**Deploy não configurado.** A publicação e a configuração real de SMTP aguardam autorização posterior.
+## Deploy na Hostinger
+
+`.github/workflows/deploy-production.yml` valida PRs e publica automaticamente a `main` por SSH. Também permite reexecutar manualmente pela aba Actions. A transferência atualiza somente `wp-content/plugins/jw-core` e `wp-content/themes/jw-headless`, com simulação e conferência de checksums. Banco, uploads, WordPress, terceiros e configuração privada são preservados.
+
+Destino: `/home/u343461047/domains/jwusinvest.com.br/public_html/cms`, servido em `https://cms.jwusinvest.com.br`. O environment `production` aceita apenas `main` e contém `HOSTINGER_PATH`, `CMS_URL` e os secrets `HOSTINGER_HOST`, `HOSTINGER_USER`, `HOSTINGER_PORT`, `HOSTINGER_SSH_KEY`, `HOSTINGER_KNOWN_HOSTS`.
+
+A preparação inicial usa `scripts/bootstrap-hostinger.sh` e `config/` em uma pasta privada da hospedagem. Ela instala as dependências fixadas e nunca importa banco nem substitui um `wp-config.php` existente. A configuração criada usa `/home/u343461047/jw-private/database.php`; o modelo `database.example.php` fica nessa mesma pasta privada. Preencha as credenciais e o prefixo do banco importado, mantendo permissões `0600`. Sem esse arquivo, o CMS responde HTTP 503 `JW_DATABASE_PENDING`; a Action distingue entrega de arquivos de CMS funcional.
+
+Importe o banco e os uploads separadamente, ajuste as URLs locais no banco com ferramenta compatível com dados serializados e mantenha `jw-core`, WPGraphQL e o tema `jw-headless` ativos. A configuração de produção permite o frontend com e sem `www`. SMTP continua sendo uma configuração separada no painel; o deploy não transfere credenciais de email.
+
+Integre este repositório antes do frontend. O build do frontend exige a API `/wp-json/jw/v1/site-content` disponível; não utiliza conteúdo simulado quando o CMS está indisponível.
