@@ -1,0 +1,76 @@
+name: CMS CI and production
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: jw-cms-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@d52fc211a0436f8839a587b3b5b8efddab4744ea
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer check
+      - run: find wp-content/plugins/jw-core wp-content/themes/jw-headless config -name '*.php' -print0 | xargs -0 -n1 php -l
+      - run: bash -n scripts/deploy-hostinger.sh && bash -n scripts/bootstrap-hostinger.sh
+  publish:
+    needs: validate
+    if: github.repository == 'thaisantos-l/jw-csm' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    env:
+      HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+      HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+      HOSTINGER_PORT: ${{ secrets.HOSTINGER_PORT }}
+      HOSTINGER_PATH: ${{ vars.HOSTINGER_PATH }}
+      CMS_URL: ${{ vars.CMS_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Configure SSH
+        env:
+          PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          test -n "$PRIVATE_KEY" && test -n "$KNOWN_HOSTS"
+          printf '%s\n' "$PRIVATE_KEY" > "$RUNNER_TEMP/jw_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/jw_known_hosts"
+          printf 'DEPLOY_KEY_FILE=%s/jw_deploy\nDEPLOY_KNOWN_HOSTS_FILE=%s/jw_known_hosts\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Review transfer
+        run: bash scripts/deploy-hostinger.sh dry-run
+      - name: Publish owned plugin and theme
+        run: bash scripts/deploy-hostinger.sh publish
+      - name: Check CMS readiness
+        run: |
+          set -euo pipefail
+          test "$CMS_URL" = 'https://cms.jwusinvest.com.br'
+          status=$(curl --silent --show-error --max-time 30 -o "$RUNNER_TEMP/jw-content.json" -w '%{http_code}' "$CMS_URL/wp-json/jw/v1/site-content")
+          if [ "$status" = 503 ] && grep -q JW_DATABASE_PENDING "$RUNNER_TEMP/jw-content.json"; then
+            echo '::warning::CMS files deployed; production database configuration/import is still pending.'
+            echo '### CMS files deployed; database pending' >> "$GITHUB_STEP_SUMMARY"
+          else
+            test "$status" = 200
+            python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["schemaVersion"] == 1 and "data" in d and "digest" in d' "$RUNNER_TEMP/jw-content.json"
+            echo '### CMS deployed and public API verified' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          printf 'Commit: `%s`\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary SSH files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/jw_deploy" "$RUNNER_TEMP/jw_known_hosts"
